@@ -1,20 +1,63 @@
-<<<<<<< HEAD
-# React + Vite
+# FER202 - React Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a modern web application built with React and Vite. It serves as a comprehensive frontend lab setup, integrating various essential libraries for building scalable and robust user interfaces.
 
-Currently, two official plugins are available:
+## 🚀 Technologies Used
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Framework & Build Tool:** [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Routing:** [React Router v7](https://reactrouter.com/)
+- **State Management:** [Redux Toolkit](https://redux-toolkit.js.org/) & React Redux
+- **Styling:** [Bootstrap 5](https://getbootstrap.com/), [React Bootstrap](https://react-bootstrap.github.io/), & Sass
+- **Form Handling & Validation:** [Formik](https://formik.org/) & [Yup](https://github.com/jquense/yup)
+- **HTTP Client:** [Axios](https://axios-http.com/)
+- **Authentication:** [Google OAuth](https://github.com/MomenSherif/react-oauth) (`@react-oauth/google`)
 
-## React Compiler
+## 📦 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
-# FER202
->>>>>>> 974b45178c2057b1db8e8af5db0285b8822bf558
+### Installation
+
+1. Clone the repository and navigate to the project directory (if you haven't already).
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
+
+### Configuration
+1. Copy the `.env.example` file to a new file named `.env` if required by the project setup.
+2. Fill in any necessary environment variables such as API endpoints or your Google OAuth Client ID.
+
+### Running the Application
+
+To start the development server with Hot Module Replacement (HMR):
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173` (or the port specified in your terminal).
+
+### Building for Production
+
+To create a production-ready build:
+
+```bash
+npm run build
+```
+The compiled assets will be generated in the `dist` directory.
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## 🛠 Available Scripts
+
+- `npm run dev`: Starts the Vite development server.
+- `npm run build`: Bundles the app for production.
+- `npm run lint`: Runs ESLint to check for code quality and style issues.
+- `npm run preview`: Locally previews the production build.
