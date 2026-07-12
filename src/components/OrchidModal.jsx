@@ -21,6 +21,42 @@ const OrchidModal = ({ show, handleClose, handleSubmit, initialData }) => {
   
   const [colorDropdownOpen, setColorDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState('');
+
+  const handleImageUpload = async (e, setFieldValue) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError('');
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    try {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        setFieldValue('img', data.secure_url);
+      } else {
+        setUploadError(data.error?.message || 'Upload failed. Please try again.');
+      }
+    } catch (error) {
+      setUploadError('Error uploading image.');
+    } finally {
+      setIsUploading(false);
+      // Xóa value của input file để có thể chọn lại cùng một file nếu muốn
+      e.target.value = null;
+    }
+  };
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
@@ -104,17 +140,61 @@ const OrchidModal = ({ show, handleClose, handleSubmit, initialData }) => {
                 
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Image Path or URL</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="img" 
-                      placeholder="e.g. src/assets/5.png or external link"
-                      value={values.img} 
-                      onChange={handleChange} 
-                      onBlur={handleBlur} 
-                      isInvalid={touched.img && errors.img} 
-                    />
-                    <Form.Control.Feedback type="invalid">{errors.img}</Form.Control.Feedback>
+                    <Form.Label>Orchid Image</Form.Label>
+                    {!values.img ? (
+                      <div>
+                        <div 
+                          className={`d-flex align-items-center gap-2 border rounded px-3 py-2 ${touched.img && errors.img ? 'border-danger' : ''}`} 
+                          style={{ backgroundColor: '#f8f9fa' }}
+                        >
+                          <Button 
+                            as="label" 
+                            htmlFor="image-upload" 
+                            variant="outline-secondary" 
+                            size="sm"
+                            className="mb-0"
+                            disabled={isUploading}
+                            style={{ cursor: isUploading ? 'not-allowed' : 'pointer' }}
+                          >
+                            Choose File
+                          </Button>
+                          <span className="text-muted small text-truncate">
+                            {isUploading ? 'Uploading image...' : 'No file chosen'}
+                          </span>
+                        </div>
+                        <Form.Control 
+                          id="image-upload"
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, setFieldValue)} 
+                          disabled={isUploading}
+                          isInvalid={touched.img && errors.img}
+                          className="d-none"
+                        />
+                        {uploadError && <div className="text-danger mt-1 small">{uploadError}</div>}
+                        {touched.img && errors.img && (
+                          <div className="text-danger mt-1" style={{ fontSize: '0.875em' }}>{errors.img}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="position-relative d-inline-block border rounded p-1" style={{ borderColor: 'var(--border-color)', background: '#fff' }}>
+                        <img 
+                          src={values.img} 
+                          alt="Preview" 
+                          style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} 
+                        />
+                        <Button 
+                          variant="danger" 
+                          size="sm" 
+                          className="position-absolute rounded-circle p-0" 
+                          style={{ top: '-10px', right: '-10px', width: '24px', height: '24px', lineHeight: '1' }}
+                          onClick={() => setFieldValue('img', '')}
+                          title="Remove Image"
+                        >
+                          &times;
+                        </Button>
+                      </div>
+                    )}
                   </Form.Group>
                 </Col>
 
@@ -291,8 +371,8 @@ const OrchidModal = ({ show, handleClose, handleSubmit, initialData }) => {
               <Button variant="secondary" className="px-4 py-2 rounded-3" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button variant="premium-action" className="px-4 py-2" type="submit">
-                {initialData ? 'Save Changes' : 'Create Orchid'}
+              <Button variant="premium-action" className="px-4 py-2" type="submit" disabled={isUploading}>
+                {isUploading ? 'Uploading...' : (initialData ? 'Save Changes' : 'Create Orchid')}
               </Button>
             </Modal.Footer>
           </Form>
