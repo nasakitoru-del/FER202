@@ -20,6 +20,7 @@ const Detail = ({ isLoggedIn, userProfile }) => {
   const [comment, setComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
+  const [isEditingFeedback, setIsEditingFeedback] = useState(false);
 
   // Fetch orchids if not loaded (e.g. on direct page refresh)
   useEffect(() => {
@@ -101,6 +102,40 @@ const Detail = ({ isLoggedIn, userProfile }) => {
     return url;
   };
 
+  const handleEditClick = (feedback) => {
+    setRating(feedback.rating);
+    setComment(feedback.comment);
+    setIsAnonymous(feedback.isAnonymous || false);
+    setIsEditingFeedback(true);
+    setFeedbackMsg(null);
+  };
+
+  const handleDeleteFeedback = () => {
+    if (!window.confirm('Are you sure you want to delete your review?')) return;
+    
+    const updatedFeedbackList = orchid.feedback.filter(f => f.author !== userProfile.email);
+    const totalRating = updatedFeedbackList.reduce((sum, f) => sum + f.rating, 0);
+    const newAvgRating = updatedFeedbackList.length > 0 ? (totalRating / updatedFeedbackList.length).toFixed(1) : 0;
+
+    const updatedOrchid = {
+      ...orchid,
+      feedback: updatedFeedbackList,
+      rating: parseFloat(newAvgRating)
+    };
+
+    dispatch(editOrchid({ id: orchid.id, data: updatedOrchid }))
+      .unwrap()
+      .then(() => {
+        setFeedbackMsg({ type: 'success', text: 'Review deleted successfully.' });
+        setIsEditingFeedback(false);
+        setComment('');
+        setRating(5);
+      })
+      .catch((err) => {
+        setFeedbackMsg({ type: 'danger', text: 'Failed to delete review.' });
+      });
+  };
+
   const handleFeedbackSubmit = (e) => {
     e.preventDefault();
     if (!comment.trim()) {
@@ -116,7 +151,14 @@ const Detail = ({ isLoggedIn, userProfile }) => {
       date: new Date().toISOString()
     };
 
-    const updatedFeedbackList = orchid.feedback ? [...orchid.feedback, newFeedback] : [newFeedback];
+    let updatedFeedbackList;
+    if (isEditingFeedback) {
+      updatedFeedbackList = orchid.feedback.map(f => 
+        f.author === userProfile.email ? newFeedback : f
+      );
+    } else {
+      updatedFeedbackList = orchid.feedback ? [...orchid.feedback, newFeedback] : [newFeedback];
+    }
 
     // Calculate new average rating
     const totalRating = updatedFeedbackList.reduce((sum, f) => sum + f.rating, 0);
@@ -131,10 +173,13 @@ const Detail = ({ isLoggedIn, userProfile }) => {
     dispatch(editOrchid({ id: orchid.id, data: updatedOrchid }))
       .unwrap()
       .then(() => {
-        setFeedbackMsg({ type: 'success', text: 'Thank you for your review!' });
-        setComment('');
-        setRating(5);
-        setIsAnonymous(false);
+        setFeedbackMsg({ type: 'success', text: isEditingFeedback ? 'Review updated successfully!' : 'Thank you for your review!' });
+        if (!isEditingFeedback) {
+          setComment('');
+          setRating(5);
+          setIsAnonymous(false);
+        }
+        setIsEditingFeedback(false);
       })
       .catch((err) => {
         setFeedbackMsg({ type: 'danger', text: 'Failed to submit review. Try again.' });
@@ -317,13 +362,31 @@ const Detail = ({ isLoggedIn, userProfile }) => {
                   <Alert variant="secondary" className="rounded-3 shadow-sm py-2 border-0" style={{ background: 'rgba(0,0,0,0.04)' }}>
                     <span className="fw-semibold text-muted">Admin Accounts</span> are not permitted to submit reviews. Only members can leave feedback.
                   </Alert>
-                ) : userHasReviewed ? (
-                  <Alert variant="info" className="rounded-3 shadow-sm py-2">
-                    You have already reviewed this orchid. Thank you for your feedback!
+                ) : userHasReviewed && !isEditingFeedback ? (
+                  <Alert variant="info" className="rounded-3 shadow-sm py-2 d-flex justify-content-between align-items-center">
+                    <span>You have already reviewed this orchid. Thank you for your feedback!</span>
+                    <Button variant="outline-primary" size="sm" onClick={() => {
+                        const myReview = orchid.feedback.find(f => f.author === userProfile.email);
+                        if (myReview) handleEditClick(myReview);
+                    }}>
+                      Edit My Review
+                    </Button>
                   </Alert>
                 ) : (
                   <div className="feedback-form-container mb-4 p-4 rounded-4" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                    <h6 className="fw-semibold mb-3">Write a Review</h6>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h6 className="fw-semibold mb-0">{isEditingFeedback ? 'Edit Your Review' : 'Write a Review'}</h6>
+                      {isEditingFeedback && (
+                        <Button variant="link" className="text-muted p-0 text-decoration-none" onClick={() => {
+                          setIsEditingFeedback(false);
+                          setComment('');
+                          setRating(5);
+                          setIsAnonymous(false);
+                        }}>
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
                     {feedbackMsg && <Alert variant={feedbackMsg.type} className="py-2">{feedbackMsg.text}</Alert>}
                     <Form onSubmit={handleFeedbackSubmit}>
                       <Form.Group className="mb-3">
@@ -367,7 +430,7 @@ const Detail = ({ isLoggedIn, userProfile }) => {
                       </Form.Group>
 
                       <Button variant="premium-action" type="submit" className="px-4 py-2 fw-semibold rounded-pill">
-                        Submit Review
+                        {isEditingFeedback ? 'Update Review' : 'Submit Review'}
                       </Button>
                     </Form>
                   </div>
@@ -395,8 +458,26 @@ const Detail = ({ isLoggedIn, userProfile }) => {
                             <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(f.date).toLocaleDateString()}</div>
                           </div>
                         </div>
-                        <div className="d-flex">
+                        <div className="d-flex flex-column align-items-end">
                           <StarRating rating={f.rating} size={14} />
+                          {isLoggedIn && userProfile?.email === f.author && (
+                             <div className="d-flex gap-3 mt-2">
+                               <span 
+                                 className="fw-semibold" 
+                                 style={{cursor: 'pointer', fontSize: '0.8rem', color: '#3b82f6', letterSpacing: '0.01em'}} 
+                                 onClick={() => handleEditClick(f)}
+                               >
+                                 Edit
+                               </span>
+                               <span 
+                                 className="fw-semibold" 
+                                 style={{cursor: 'pointer', fontSize: '0.8rem', color: '#ef4444', letterSpacing: '0.01em'}} 
+                                 onClick={handleDeleteFeedback}
+                               >
+                                 Delete
+                               </span>
+                             </div>
+                          )}
                         </div>
                       </div>
                       <p className="mb-0 text-muted small ps-5">{f.comment}</p>
